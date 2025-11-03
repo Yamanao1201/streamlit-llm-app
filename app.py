@@ -10,7 +10,7 @@ llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.3)
 
 # 関数
 def generate_response(selected_item: str, input_message: str) -> str:
-    """選択された相談相手と入力テキストをもとにLLMの回答を返す関数"""
+    """選択された相談相手と入力テキストをもとにLLMの回答を返す関数（非ストリーミング版）"""
     if not input_message:
         return "質問が入力されていません。"
 
@@ -40,6 +40,40 @@ def generate_response(selected_item: str, input_message: str) -> str:
 
     return result.content  # 回答文字列を返す
 
+def generate_response_stream(selected_item: str, input_message: str):
+    """選択された相談相手と入力テキストをもとにLLMの回答をストリーミングで返す関数"""
+    if not input_message:
+        yield "質問が入力されていません。"
+        return
+
+    # モードに応じたsystemプロンプトを設定
+    if selected_item == "占い師":
+        system_prompt = (
+            "あなたはスピリチュアルな占い師です。"
+            "星座・タロット・直感を用いて、相談者の運勢や気持ちを読み取り、"
+            "優しく導くように答えてください。"
+        )
+    else:
+        system_prompt = (
+            "あなたは現実主義の科学者です。"
+            "心理学や統計データに基づいて冷静に分析し、"
+            "根拠のあるアドバイスをわかりやすく伝えてください。"
+        )
+
+    # プロンプトを組み立て
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", "{question}")
+    ])
+
+    # メッセージを整形してLLMにストリーミングで渡す
+    messages = prompt.format_messages(question=input_message)
+    
+    # ストリーミングで回答を生成
+    for chunk in llm.stream(messages):
+        if chunk.content:
+            yield chunk.content
+
 # アプリ本体
 st.title("Lesson 21: 提出課題用Webアプリ")
 
@@ -66,8 +100,8 @@ if st.button("実行"):
     st.divider()
 
     if input_message:
-        response = generate_response(selected_item, input_message)  # ✅ 関数を呼び出し
         st.subheader(f"{selected_item}の回答")
-        st.write(response)
+        # ストリーミングで回答を表示
+        st.write_stream(generate_response_stream(selected_item, input_message))
     else:
         st.warning("質問を入力してください。")
