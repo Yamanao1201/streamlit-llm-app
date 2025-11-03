@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 load_dotenv() 
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 import streamlit as st
 
 # モデル設定
